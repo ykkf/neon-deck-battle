@@ -33,6 +33,9 @@ body.battle-bg::after{opacity:.35}
 .map-node.current{border-color:var(--accent);box-shadow:0 0 15px rgba(56,189,248,.3);animation:node-pulse 2s ease-in-out infinite}
 @keyframes node-pulse{0%,100%{box-shadow:0 0 15px rgba(56,189,248,.3)}50%{box-shadow:0 0 25px rgba(56,189,248,.5)}}
 .map-node.locked{opacity:.15;cursor:not-allowed}
+.map-node.elite{border-color:var(--danger);box-shadow:0 0 10px rgba(244,63,94,.3)}
+.map-node.elite .n-icon{text-shadow:0 0 15px rgba(244,63,94,.8)}
+@media (hover: hover){ .map-node.elite:hover:not(.done):not(.locked){box-shadow:0 0 25px rgba(244,63,94,.6);transform:scale(1.1)} }
 .map-node .n-icon{font-size:1.4rem}.map-node .n-label{font-size:.7rem;color:var(--dim);margin-top:.3rem}
 .map-connector{width:2px;height:20px;background:linear-gradient(to bottom,rgba(56,189,248,.2),rgba(129,140,248,.2));margin:0 auto}
 
