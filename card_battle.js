@@ -1062,7 +1062,58 @@ function shakeUnit(id){const u=document.getElementById(id);u.classList.remove('s
 function updateTopBar(){
   el('tb-floor').textContent=`階層: ${state.currentFloor+1}/${state.map.length}`;
   el('tb-hp').textContent=`HP: ${state.playerHP}/${state.playerMaxHP}`;
-  el('tb-relics').textContent=state.relics.length?state.relics.map(r=>r.icon+r.name).join(' '):'遺物: なし';
+  if(state.relics.length){
+    const relicsHtml = state.relics.map(r => 
+      `<span class="relic-icon" onmouseenter="showRelicTooltip(event, '${r.id}')" onmouseleave="hideRelicTooltip()" onclick="toggleRelicTooltip(event, '${r.id}')">${r.icon}</span>`
+    ).join('');
+    el('tb-relics').innerHTML = `遺物: ${relicsHtml}`;
+  } else {
+    el('tb-relics').textContent = '遺物: なし';
+  }
+}
+
+let tooltipTimer = null;
+let activeTooltipId = null;
+
+function showRelicTooltip(e, id) {
+  clearTimeout(tooltipTimer);
+  const relic = RELIC_DEFS.find(r => r.id === id);
+  if(!relic) return;
+  const tt = el('relic-tooltip');
+  const descHtml = relic.desc.replace(/(\d+%?)/g, '<strong>$1</strong>');
+  tt.innerHTML = `<h3>${relic.name}</h3><p>${descHtml}</p>`;
+  tt.classList.remove('hide');
+  void tt.offsetWidth; // force reflow
+  tt.classList.add('show');
+  
+  const rect = e.target.getBoundingClientRect();
+  let top = rect.bottom + 10;
+  let left = rect.left;
+  
+  if(left + 250 > window.innerWidth) left = window.innerWidth - 260; // 画面右端はみ出し防止
+  if(top + 80 > window.innerHeight) top = rect.top - 90; // 画面下端はみ出し防止
+  
+  tt.style.top = top + 'px';
+  tt.style.left = left + 'px';
+}
+
+function hideRelicTooltip() {
+  const tt = el('relic-tooltip');
+  tt.classList.remove('show');
+  clearTimeout(tooltipTimer);
+  tooltipTimer = setTimeout(() => {
+    if(!tt.classList.contains('show')) tt.classList.add('hide');
+  }, 200);
+}
+
+function toggleRelicTooltip(e, id) {
+  if (activeTooltipId === id && el('relic-tooltip').classList.contains('show')) {
+    hideRelicTooltip();
+    activeTooltipId = null;
+  } else {
+    showRelicTooltip(e, id);
+    activeTooltipId = id;
+  }
 }
 
 // ============================================================
