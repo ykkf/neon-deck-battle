@@ -14,12 +14,12 @@ const CARD_DEFS={
   shieldBash:{name:'盾撃',cost:1,type:'attack',value:3,icon:'🔰',cls:'attack',desc:'3dmg+block分追加',synergy:'block_atk',up:{name:'盾撃+',value:5,desc:'5dmg+block分追加'}},
   drain:{name:'吸血',cost:2,type:'attack',value:6,icon:'🩸',cls:'attack',desc:'6dmg+HP回復',synergy:'lifesteal',up:{name:'吸血+',value:9,desc:'9dmg+HP回復'}},
   doubleStrike:{name:'連撃',cost:1,type:'attack',value:3,icon:'⚡',cls:'attack',desc:'3dmg×2回',synergy:'double',up:{name:'連撃+',value:4,desc:'4dmg×2回'}},
-  catalyst:{name:'触媒',cost:2,type:'skill',value:0,icon:'🧪',cls:'poison',desc:'敵の毒を2倍',synergy:'catalyst',up:{name:'触媒+',cost:1,value:0,desc:'(1コス)毒を2倍'}},
-  toxicCloud:{name:'毒霧',cost:1,type:'skill',value:4,icon:'💨',cls:'poison',desc:'毒4+弱体1',synergy:'toxic_cloud',up:{name:'毒霧+',value:6,desc:'毒6+弱体1'}},
-  bodySlam:{name:'ボディスラム',cost:1,type:'attack',value:0,icon:'💥',cls:'attack',desc:'ブロック値分のdmg',synergy:'body_slam',up:{name:'ボディスラム+',cost:0,value:0,desc:'(0コス)ブロック分のdmg'}},
-  entrench:{name:'塹壕',cost:2,type:'skill',value:0,icon:'🧱',cls:'block',desc:'ブロックを2倍',synergy:'entrench',up:{name:'塹壕+',cost:1,value:0,desc:'(1コス)ブロックを2倍'}},
-  adrenaline:{name:'アドレナリン',cost:0,type:'skill',value:0,icon:'⚡',cls:'draw',desc:'+1エナジー,2ドロー',synergy:'adrenaline',up:{name:'アドレナリン+',value:0,desc:'+2エナジー,2ドロー'}},
-  flurry:{name:'連撃の嵐',cost:1,type:'attack',value:2,icon:'🌪️',cls:'attack',desc:'2dmg×プレイ枚数',synergy:'flurry',up:{name:'連撃の嵐+',value:3,desc:'3dmg×プレイ枚数'}}
+  modoku:{name:'猛毒化',cost:2,type:'skill',value:0,icon:'🧪',cls:'poison',desc:'敵の毒を2倍',synergy:'catalyst',up:{name:'猛毒化+',cost:1,value:0,desc:'(1コス)毒を2倍'}},
+  erosion:{name:'侵食',cost:1,type:'skill',value:2,icon:'💀',cls:'poison',desc:'毒2, 所持時毒ダメ+3',synergy:'erosion',up:{name:'侵食+',value:3,desc:'毒3, 所持時毒ダメ+5'}},
+  spikedArmor:{name:'トゲ装甲',cost:1,type:'skill',value:5,icon:'🦔',cls:'block',desc:'5盾, ブロック時5反射',synergy:'spiked_armor',up:{name:'トゲ装甲+',value:8,desc:'8盾, ブロック時8反射'}},
+  ironWall:{name:'鉄壁',cost:2,type:'skill',value:0,icon:'🧱',cls:'block',desc:'ブロックを2倍',synergy:'entrench',up:{name:'鉄壁+',cost:1,value:0,desc:'(1コス)ブロックを2倍'}},
+  accelerate:{name:'加速',cost:0,type:'skill',value:0,icon:'⏩',cls:'draw',desc:'2枚ドロー(廃棄)',synergy:'accelerate',up:{name:'加速+',value:0,desc:'3枚ドロー(廃棄)'}},
+  chainStrike:{name:'連鎖',cost:1,type:'attack',value:3,icon:'🌪️',cls:'attack',desc:'3dmg×ドロー枚数',synergy:'chain_strike',up:{name:'連鎖+',value:4,desc:'4dmg×ドロー枚数'}}
 };
 
 // ============================================================
@@ -52,23 +52,24 @@ const RELIC_DEFS=[
   {id:'lucky_coin',name:'幸運のコイン',icon:'🪙',desc:'報酬カード+1枚',hook:'passive'},
   {id:'snake_skull',name:'蛇の頭骨',icon:'💀',desc:'毒付与時、追加で+1',hook:'passive'},
   {id:'barricade',name:'バリケード',icon:'🚧',desc:'ターン終了時にブロックを維持',hook:'passive'},
-  {id:'spinning_top',name:'独楽',icon:'🌀',desc:'手札が0枚になった時1枚ドロー',hook:'passive'}
+  {id:'spinning_top',name:'独楽',icon:'🌀',desc:'手札が0枚になった時1枚ドロー',hook:'passive'},
+  {id:'poison_flask',name:'毒瓶',icon:'🧪',desc:'戦闘開始時 敵に毒3',hook:'battleStart'},
+  {id:'amplifier',name:'増幅器',icon:'📡',desc:'毒ダメージ+50%',hook:'passive'},
+  {id:'reflect_shield',name:'反射盾',icon:'🪞',desc:'ブロックの30%をダメージとして返す',hook:'onHit'},
+  {id:'heavy_armor',name:'重装化',icon:'🛡️',desc:'ターン開始時 ブロック+3',hook:'turnStart'},
+  {id:'hyper_focus',name:'過集中',icon:'👁️',desc:'ドローするたび攻撃+1',hook:'onDraw'}
 ];
 
 // ============================================================
 // イベント定義
 // ============================================================
 const EVENT_DEFS=[
-  {title:'呪われた血の祭壇',icon:'🩸',text:'おぞましい祭壇がある。血を捧げれば力を得られそうだ。',
-    choices:[{label:'血を捧げる（最大HP-30%, ボス遺物獲得）',action:'blood_altar'},{label:'立ち去る',action:'skip'}]},
-  {title:'悪魔の鍛冶屋',icon:'👿',text:'悪魔が囁く。「すべての攻撃を強化してやろう。代償は...分かるな？」',
-    choices:[{label:'契約する（全攻撃強化, 呪い追加）',action:'demon_forge'},{label:'断る',action:'skip'}]},
-  {title:'狂気のルーレット',icon:'🎰',text:'回せば天国か地獄か。',
-    choices:[{label:'回す（50%で遺物2個 or 現在HP半減）',action:'roulette'},{label:'立ち去る',action:'skip'}]},
-  {title:'謎の注射器',icon:'💉',text:'怪しい薬が入っている。筋力が高まりそうだが...。',
-    choices:[{label:'打つ（常時ダメージ+2, 毎ターン1ダメージ）',action:'syringe'},{label:'立ち去る',action:'skip'}]},
-  {title:'忘却の泉',icon:'⛲',text:'記憶を消し去る泉。消した分だけ痛みを伴う。',
-    choices:[{label:'カードを削除（最大3枚, 1枚につき8dmg）',action:'oblivion_purge'},{label:'泉の水を飲む（HP+10）',action:'fountain_heal'}]}
+  {title:'禁断の契約',icon:'📜',text:'HPを半分捧げれば、稀なる遺物を授けよう。',
+    choices:[{label:'契約する（現在HP半減、遺物獲得）',action:'contract'},{label:'立ち去る',action:'skip'}]},
+  {title:'謎の薬',icon:'🧪',text:'怪しげな薬が置かれている。',
+    choices:[{label:'飲む（最大HP+10 or ランダム弱体）',action:'mystery_potion'},{label:'立ち去る',action:'skip'}]},
+  {title:'呪われた宝箱',icon:'🧰',text:'開ければ強力な力を得られるが、呪いも引き受けることになる。',
+    choices:[{label:'開ける（強カード入手、呪い追加）',action:'cursed_chest'},{label:'立ち去る',action:'skip'}]}
 ];
 
 // ============================================================
@@ -253,6 +254,7 @@ function triggerRelics(hook){
       case 'vamp_fang': state.playerHP=Math.min(state.playerMaxHP,state.playerHP+5);addLog('遺物[吸血牙] HP5回復','hel');break;
       case 'poison_ring': state.enemyStatus.poison+=2;addLog('遺物[毒の指輪] 敵に毒2','psn');break;
       case 'war_drum': state.energy++;addLog('遺物[戦太鼓] +1エネルギー','drw');break;
+      case 'poison_flask': applyPoison(3);addLog('遺物[毒瓶] 敵に毒3','psn');break;
     }
   });
 }
@@ -266,27 +268,25 @@ function applyPassiveRelics(){
 // マップ生成
 // ============================================================
 function generateMap(){
-  const floors=[];const total=6; // 6 floors for faster pacing
-  for(let f=0;f<total;f++){
+  const floors=[];
+  for(let f=0;f<6;f++){
     const nodes=[];
-    let count = 3;
-    if(f===total-1) count=1;
-    else if(f===0) count=2;
-    for(let n=0;n<count;n++){
-      let type, bgType;
-      bgType = (f<3) ? 'forest' : 'cave';
-      if(f===total-1){ type='boss'; bgType='boss'; }
-      else if(f===0){ type='battle'; }
-      else{
-        // Path A/B concept: at least one elite per floor after 1
-        if(n===0) type = Math.random()<0.6 ? 'elite' : 'battle';
-        else if(n===1) type = Math.random()<0.5 ? 'event' : 'rest';
-        else type = Math.random()<0.4 ? 'elite' : (Math.random()<0.5?'battle':'event');
-      }
-      const icons={battle:'⚔️',event:'❓',rest:'🏕️',boss:'💀',elite:'👹'};
-      const labels={battle:'戦闘',event:'イベント',rest:'休憩',boss:'ボス',elite:'エリート'};
-      nodes.push({type,icon:icons[type],label:labels[type],bg:bgType});
+    let bgType = (f<3) ? 'forest' : 'cave';
+    if(f===0){ nodes.push({type:'battle',icon:'⚔️',label:'入口',bg:'forest'}); }
+    else if(f===1){
+      nodes.push({type:'rest',icon:'🏕️',label:'左(安定)',bg:bgType});
+      nodes.push({type:'elite',icon:'👹',label:'右(危険)',bg:bgType});
     }
+    else if(f===2){
+      nodes.push({type:'event',icon:'❓',label:'左(安定)',bg:bgType});
+      nodes.push({type:'elite',icon:'👹',label:'右(危険)',bg:bgType});
+    }
+    else if(f===3){
+      nodes.push({type:'battle',icon:'⚔️',label:'左(安定)',bg:bgType});
+      nodes.push({type:'event',icon:'❓',label:'右(危険)',bg:bgType});
+    }
+    else if(f===4){ nodes.push({type:'rest',icon:'🏕️',label:'休憩',bg:bgType}); }
+    else if(f===5){ nodes.push({type:'boss',icon:'💀',label:'ボス',bg:'boss'}); }
     floors.push(nodes);
   }
   return floors;
@@ -358,12 +358,33 @@ function drawCard(){
   return state.drawPile.pop();
 }
 function drawHand(){const sz=state.handSize||5;while(state.hand.length<sz){const c=drawCard();if(!c) break;state.hand.push(c)}}
-function drawCards(n){for(let i=0;i<n;i++){const c=drawCard();if(!c) break;state.hand.push(c)}}
+function drawCards(n){
+  for(let i=0;i<n;i++){
+    const c=drawCard();if(!c) break;
+    state.hand.push(c);
+    if(hasRelic('hyper_focus')){ state.playerStatus.strength = (state.playerStatus.strength||0)+1; addLog('遺物[過集中] 攻撃力+1','buf'); }
+  }
+}
 
 function applyDamage(target,amount){
   if(target==='player'){
     let d=amount;
-    if(state.block>0){if(state.block>=d){state.block-=d;addLog(`ブロックで${d}防御！`,'blk');showDmgPopup('p-unit','🛡'+d,'block-pop');d=0}else{d-=state.block;addLog(`ブロック${state.block}消費、${d}貫通！`,'blk');state.block=0}}
+    const initialBlock = state.block;
+    if(state.block>0){
+      if(state.block>=d){state.block-=d;addLog(`ブロックで${d}防御！`,'blk');showDmgPopup('p-unit','🛡'+d,'block-pop');d=0}
+      else{d-=state.block;addLog(`ブロック${state.block}消費、${d}貫通！`,'blk');state.block=0}
+    }
+    const blockedAmt = initialBlock - state.block;
+    if(blockedAmt > 0){
+      if(hasRelic('reflect_shield')){
+        const ref = Math.floor(blockedAmt * 0.3);
+        if(ref>0){ addLog(`遺物[反射盾] ${ref}ダメージ反射！`,'dmg'); setTimeout(()=>applyDamage('enemy',ref), 300); }
+      }
+      if(state.spikedArmorActive){
+        const ref = state.spikedArmorActive;
+        addLog(`[トゲ装甲] ${ref}ダメージ反射！`,'dmg'); setTimeout(()=>applyDamage('enemy',ref), 300);
+      }
+    }
     if(d>0){state.playerHP=Math.max(0,state.playerHP-d);addLog(`プレイヤーに${d}ダメージ！`,'dmg');showDmgPopup('p-unit','-'+d,'dmg-pop');flashUnit('p-unit');playerHitAnim()}
   }else{
     let d=amount + (state.playerStatus.strength||0);
@@ -380,7 +401,17 @@ function applyPoison(n){
 function applyWeak(n){state.enemyStatus.weak+=n;addLog(`敵に弱体${n}付与！`,'dbf')}
 function applyStatusEffects(){
   const s=state.enemyStatus;
-  if(s.poison>0){const pd=s.poison+(state.poisonBonus||0);state.enemyHP=Math.max(0,state.enemyHP-pd);addLog(`毒で敵に${pd}ダメージ！`,'psn');s.poison--;shakeUnit('e-unit')}
+  if(s.poison>0){
+    let pd = s.poison+(state.poisonBonus||0);
+    if(hasRelic('amplifier')) pd = Math.floor(pd * 1.5);
+    const hasErosion = [...state.hand, ...state.drawPile, ...state.discardPile].some(c=>c.defKey==='erosion');
+    if(hasErosion){
+      const upg = [...state.hand, ...state.drawPile, ...state.discardPile].find(c=>c.defKey==='erosion').upgraded;
+      pd += (upg ? 5 : 3);
+      addLog('侵食効果で毒ダメージ増加！', 'psn');
+    }
+    state.enemyHP=Math.max(0,state.enemyHP-pd);addLog(`毒で敵に${pd}ダメージ！`,'psn');s.poison--;shakeUnit('e-unit')
+  }
   if(s.weak>0) s.weak--;
   if(state.playerStatus.poison>0){state.playerHP=Math.max(0,state.playerHP-state.playerStatus.poison);addLog(`毒で${state.playerStatus.poison}ダメージ！`,'psn');state.playerStatus.poison--;shakeUnit('p-unit')}
   if(state.playerStatus.bleed>0){state.playerHP=Math.max(0,state.playerHP-state.playerStatus.bleed);addLog(`出血で${state.playerStatus.bleed}ダメージ！`,'dmg');shakeUnit('p-unit')}
@@ -400,10 +431,14 @@ function playCard(cardId){
   else if(card.synergy==='lifesteal'){playerAttackAnim();applyDamage('enemy',val);const h=Math.floor(val/2);state.playerHP=Math.min(state.playerMaxHP,state.playerHP+h);addLog(`${card.name}！ ${val}dmg+HP${h}回復`,'dmg');shakeUnit('e-unit');showDmgPopup('p-unit','+'+h,'heal-pop')}
   else if(card.synergy==='double'){playerAttackAnim();applyDamage('enemy',val);applyDamage('enemy',val);addLog(`${card.name}！ ${val}×2回`,'dmg');shakeUnit('e-unit')}
   else if(card.synergy==='catalyst'){const amt=state.enemyStatus.poison;if(amt>0){applyPoison(amt);addLog(`${card.name}！毒が2倍に！`,'psn')}else{addLog(`${card.name}！しかし毒がない`,'dim')}}
+  else if(card.synergy==='erosion'){applyPoison(val);addLog(`${card.name}！毒${val}付与`,'psn');showDmgPopup('e-unit','☠+'+val,'poison-pop')}
+  else if(card.synergy==='spiked_armor'){applyBlock(val);state.spikedArmorActive = val;addLog(`${card.name}！ブロック+${val} トゲ展開！`,'blk');showDmgPopup('p-unit','+🛡'+val,'block-pop')}
   else if(card.synergy==='toxic_cloud'){applyPoison(val);applyWeak(1);addLog(`${card.name}！毒${val}+弱体1`,'psn');showDmgPopup('e-unit','☠+'+val,'poison-pop')}
   else if(card.synergy==='body_slam'){playerAttackAnim();const dmg=state.block;applyDamage('enemy',dmg);addLog(`${card.name}！ ブロック分の${dmg}ダメージ！`,'dmg');shakeUnit('e-unit')}
   else if(card.synergy==='entrench'){applyBlock(state.block);addLog(`${card.name}！ブロックが2倍に！`,'blk');showDmgPopup('p-unit','+🛡'+state.block,'block-pop')}
+  else if(card.synergy==='accelerate'){drawCards(card.upgraded?3:2);addLog(`${card.name}！ドロー`,'drw')}
   else if(card.synergy==='adrenaline'){const eBonus=card.upgraded?2:1;state.energy=Math.min(state.maxEnergy+2,state.energy+eBonus);drawCards(2);addLog(`${card.name}！${eBonus}回復+2枚ドロー`,'drw')}
+  else if(card.synergy==='chain_strike'){playerAttackAnim();const hits=state.cardsPlayedThisTurn;const dmg=val*hits;if(dmg>0)applyDamage('enemy',dmg);addLog(`${card.name}！ ${val}×${hits} = ${dmg}dmg`,'dmg');shakeUnit('e-unit')}
   else if(card.synergy==='flurry'){playerAttackAnim();const hits=state.cardsPlayedThisTurn;for(let i=0;i<=hits;i++) applyDamage('enemy',val);addLog(`${card.name}！ ${val}dmg×${hits+1}回`,'dmg');shakeUnit('e-unit')}
   else switch(card.type){
     case 'attack':playerAttackAnim();applyDamage('enemy',val);addLog(`${card.name}！`,'dmg');shakeUnit('e-unit');break;
@@ -413,7 +448,7 @@ function playCard(cardId){
     case 'poison':applyPoison(val);showDmgPopup('e-unit','☠+'+val,'poison-pop');break;
     case 'weak':applyWeak(val);break;
   }
-  if(card.synergy!=='adrenaline') state.discardPile.push(card); // Adrenaline is exhaust
+  if(card.synergy!=='adrenaline' && card.synergy!=='accelerate') state.discardPile.push(card); // Adrenaline and Accelerate are exhaust
   
   state.cardsPlayedThisTurn++;
   if(state.hand.length===0 && hasRelic('spinning_top')){
@@ -432,7 +467,9 @@ function rollEnemyIntent(){
 function startPlayerTurn(){
   state.turnCount++;state.energy=state.maxEnergy;
   if(!hasRelic('barricade')) state.block=0;
+  if(hasRelic('heavy_armor')) applyBlock(3);
   state.cardsPlayedThisTurn=0;
+  state.spikedArmorActive=0;
   applyStatusEffects();updateBattleUI();
   if(checkBattleEnd()) return;
   triggerRelics('turnStart');
@@ -512,8 +549,25 @@ function checkBattleEnd(){
 }
 
 function showReward(){
-  const keys=Object.keys(CARD_DEFS);const chosen=[];const cnt=hasRelic('lucky_coin')?4:3;
-  while(chosen.length<cnt){const k=pick(keys);if(!chosen.includes(k)) chosen.push(k)}
+  const cnt=hasRelic('lucky_coin')?4:3;
+  
+  // ドロップの重み付け計算
+  const deckCounts = {};
+  state.deck.forEach(c => {
+    const cls = CARD_DEFS[c.defKey]?.cls;
+    if(cls) deckCounts[cls] = (deckCounts[cls]||0) + 1;
+  });
+  
+  const pool = [];
+  Object.keys(CARD_DEFS).forEach(k => {
+    const cls = CARD_DEFS[k].cls;
+    let weight = 1 + (deckCounts[cls]||0); // 所持枚数分出やすくなる
+    for(let i=0; i<weight; i++) pool.push(k);
+  });
+  
+  const chosen=[];
+  while(chosen.length<cnt){const k=pick(pool);if(!chosen.includes(k)) chosen.push(k)}
+  
   const ov=el('overlay');
   let h=`<h1 style="color:var(--success)">勝利！</h1><div class="sub">報酬カードを1枚選択</div><div class="reward-area">`;
   chosen.forEach(k=>{const d=CARD_DEFS[k];
@@ -545,47 +599,29 @@ function startEvent(){
 function resolveEvent(action){
   const ov=el('overlay');
   switch(action){
-    case 'blood_altar':
-      const cost = Math.floor(state.playerMaxHP * 0.3);
-      state.playerMaxHP -= cost;
-      state.playerHP = Math.min(state.playerHP, state.playerMaxHP);
+    case 'contract':
+      const dmg = Math.floor(state.playerHP/2);
+      state.playerHP -= dmg;
       const avail=RELIC_DEFS.filter(r=>!hasRelic(r.id));
       let rText = 'もう得られる遺物はない...';
       if(avail.length>0){ const r=pick(avail); state.relics.push(r); rText=`遺物「${r.name}」を獲得！`; }
-      ov.innerHTML=`<h1>🩸</h1><div class="sub">最大HPが${cost}減少した...<br>${rText}</div><button class="obtn primary" onclick="afterEvent()">続行</button>`;
+      ov.innerHTML=`<h1>📜</h1><div class="sub">HPを半分（${dmg}ダメージ）失った...<br>${rText}</div><button class="obtn primary" onclick="afterEvent()">続行</button>`;
       break;
-    case 'demon_forge':
-      state.deck.forEach(c => { if(c.type==='attack') upgradeCard(c); });
-      const curse = createCard('weak'); curse.name='呪い'; curse.desc='引くと損をする';
-      state.deck.push(curse, curse);
-      ov.innerHTML=`<h1>👿</h1><div class="sub">すべての攻撃カードが強化された！<br>...しかしデッキに呪いが2枚混ざった。</div><button class="obtn primary" onclick="afterEvent()">続行</button>`;
-      break;
-    case 'roulette':
+    case 'mystery_potion':
       if(Math.random()<0.5){
-        const avail=RELIC_DEFS.filter(r=>!hasRelic(r.id));
-        let r1, r2;
-        if(avail.length>0){ r1=pick(avail); state.relics.push(r1); }
-        const avail2=RELIC_DEFS.filter(r=>!hasRelic(r.id));
-        if(avail2.length>0){ r2=pick(avail2); state.relics.push(r2); }
-        const text = r1 ? `遺物「${r1.name}」${r2?'と「'+r2.name+'」':''}を獲得！` : '遺物は得られなかった。';
-        ov.innerHTML=`<h1>🎰大当たり！</h1><div class="sub">${text}</div><button class="obtn primary" onclick="afterEvent()">続行</button>`;
+        state.playerMaxHP += 10; state.playerHP += 10;
+        ov.innerHTML=`<h1>🧪</h1><div class="sub">力がみなぎる！ 最大HP+10</div><button class="obtn primary" onclick="afterEvent()">続行</button>`;
       }else{
-        const dmg = Math.floor(state.playerHP/2);
-        state.playerHP -= dmg;
-        ov.innerHTML=`<h1>💀大外れ...</h1><div class="sub">現在HPの半分（${dmg}ダメージ）を失った！</div><button class="obtn primary" onclick="afterEvent()">続行</button>`;
+        const mDmg = 15; state.playerHP = Math.max(1, state.playerHP - mDmg);
+        ov.innerHTML=`<h1>💀</h1><div class="sub">毒だ！ ${mDmg}ダメージを受けた！</div><button class="obtn primary" onclick="afterEvent()">続行</button>`;
       }
       break;
-    case 'syringe':
-      state.playerStatus.strength = (state.playerStatus.strength||0) + 2;
-      state.playerStatus.bleed = (state.playerStatus.bleed||0) + 1;
-      ov.innerHTML=`<h1>💉</h1><div class="sub">力が湧いてくる！（常時ダメージ+2）<br>しかし、毎ターン出血するようになった...。</div><button class="obtn primary" onclick="afterEvent()">続行</button>`;
-      break;
-    case 'oblivion_purge':
-      showPurgeUI(3);
-      return;
-    case 'fountain_heal':
-      state.playerHP=Math.min(state.playerMaxHP,state.playerHP+10);
-      ov.innerHTML=`<h1>⛲</h1><div class="sub">泉の水を飲んだ。HP+10回復！</div><button class="obtn primary" onclick="afterEvent()">続行</button>`;
+    case 'cursed_chest':
+      const strong = pick(['modoku','ironWall','accelerate','hAttack','hBlock']);
+      const c1 = createCard(strong); state.deck.push(c1);
+      const curse = createCard('weak'); curse.name='呪い'; curse.desc='引くと損をする';
+      state.deck.push(curse);
+      ov.innerHTML=`<h1>🧰</h1><div class="sub">${c1.name}を獲得！<br>...しかし「呪い」も混ざった。</div><button class="obtn primary" onclick="afterEvent()">続行</button>`;
       break;
     case 'skip':default:afterEvent();return;
   }
