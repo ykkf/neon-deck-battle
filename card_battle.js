@@ -272,6 +272,7 @@ function flashScreen(color){
 function flashUnit(unitId){
   const u=document.getElementById(unitId);
   u.classList.remove('flash-red');void u.offsetWidth;u.classList.add('flash-red');
+  setTimeout(()=>u.classList.remove('flash-red'), 450);
 }
 function showTurnBanner(isPlayer){
   const b=el('turn-banner');
