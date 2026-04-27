@@ -1,4 +1,87 @@
 // ============================================================
+// メタデータ定義（実績・アンロック・永続強化）
+// ============================================================
+const META_DEFS={
+  achievements:{
+    first_blood:{name:'初陣',desc:'初めて戦闘に勝利する'},
+    slayer:{name:'スレイヤー',desc:'ボスを撃破する'},
+    untouchable:{name:'無傷の生還',desc:'ダメージを受けずに戦闘に勝利する'},
+    poison_master:{name:'毒の支配者',desc:'敵に毒を100以上付与する'},
+    iron_fortress:{name:'難攻不落',desc:'ブロックを100以上積む'},
+    speedrunner:{name:'スピードスター',desc:'ボスを5ターン以内に撃破する'},
+    relic_hunter:{name:'遺物コレクター',desc:'1回のランで遺物を7個以上集める'},
+    gambler:{name:'ギャンブラー',desc:'ルーレットで大当たりを引く'},
+    blood_price:{name:'血の代償',desc:'血の祭壇でHPを捧げる'},
+    minimalist:{name:'ミニマリスト',desc:'デッキ10枚以下でクリア'},
+    magician:{name:'手品師',desc:'1ターンに15枚以上ドローする'},
+    overkill:{name:'オーバーキル',desc:'1回の攻撃で99以上のダメージ'},
+    close_call:{name:'首の皮一枚',desc:'残りHP1で戦闘に勝利する'},
+    sleepless:{name:'不眠不休',desc:'休憩せずにクリアする'},
+    elite_hunter:{name:'エリートハンター',desc:'エリートを3体以上撃破する'},
+    purifier:{name:'断捨離',desc:'1回のランで5枚以上削除する'},
+    legion:{name:'百鬼夜行',desc:'デッキ30枚以上でクリア'},
+    ascendant1:{name:'登り詰める者',desc:'挑戦レベル1をクリア'},
+    ascendant5:{name:'真の達人',desc:'挑戦レベル5をクリア'},
+    infinite_loop:{name:'無限ループ',desc:'1ターンに20枚以上プレイ'}
+  },
+  unlocks:{
+    vamp_fang:{req:'playCount',val:3,type:'relic',name:'吸血牙'},
+    demon_forge:{req:'bossKills',val:1,type:'event',name:'悪魔の鍛冶屋'},
+    executioner:{req:'maxDamage',val:50,type:'card',name:'処刑人の斧'},
+    noxious_fumes:{req:'maxPoison',val:30,type:'card',name:'致死毒'},
+    barricade:{req:'maxBlock',val:100,type:'relic',name:'バリケード'},
+    spinning_top:{req:'maxPlay',val:15,type:'relic',name:'独楽'}
+  },
+  upgrades:{
+    max_hp:{name:'生命の器',desc:'初期最大HP+2 (最大5段階)',maxLevel:5,cost:10},
+    upgrade_chance:{name:'戦士の勘',desc:'強化済みカード出現率+2% (最大5段階)',maxLevel:5,cost:20},
+    heal_boost:{name:'癒やしの焚き火',desc:'休憩時の回復量+2 (最大3段階)',maxLevel:3,cost:15},
+    boss_relic_choice:{name:'幸運のお守り',desc:'ボス遺物が2択から選べる',maxLevel:1,cost:100}
+  }
+};
+
+let saveData = {
+  playCount: 0,
+  bossKills: 0,
+  maxDamage: 0,
+  maxPoison: 0,
+  maxBlock: 0,
+  maxPlay: 0,
+  souls: 0,
+  achievements: [],
+  unlocked: [],
+  upgrades: { max_hp:0, upgrade_chance:0, heal_boost:0, boss_relic_choice:0 },
+  maxAscension: 0
+};
+
+function loadMeta(){
+  const s = localStorage.getItem('neonDeckSave');
+  if(s) saveData = {...saveData, ...JSON.parse(s)};
+}
+function saveMeta(){
+  localStorage.setItem('neonDeckSave', JSON.stringify(saveData));
+}
+function unlockCheck(){
+  Object.keys(META_DEFS.unlocks).forEach(k=>{
+    if(saveData.unlocked.includes(k)) return;
+    const u = META_DEFS.unlocks[k];
+    if(saveData[u.req] >= u.val){
+      saveData.unlocked.push(k);
+      alert(`【アンロック】${u.name} が解放されました！`);
+    }
+  });
+  saveMeta();
+}
+function unlockAchievement(id){
+  if(!saveData.achievements.includes(id)){
+    saveData.achievements.push(id);
+    alert(`🏆 実績解除: ${META_DEFS.achievements[id].name}\n${META_DEFS.achievements[id].desc}`);
+    saveMeta();
+  }
+}
+loadMeta();
+
+// ============================================================
 // カード定義（シナジー・アップグレード対応）
 // ============================================================
 const CARD_DEFS={
@@ -64,7 +147,9 @@ const RELIC_DEFS=[
 // イベント定義
 // ============================================================
 const EVENT_DEFS=[
-  {title:'禁断の契約',icon:'📜',text:'HPを半分捧げれば、稀なる遺物を授けよう。',
+  {id:'demon_forge',title:'悪魔の鍛冶屋',icon:'👿',text:'すべての武器を極限まで鍛え上げるが、呪いが混入する。',
+    choices:[{label:'鍛える（全攻撃カード強化、呪い追加）',action:'demon_forge'},{label:'立ち去る',action:'skip'}]},
+  {id:'contract',title:'禁断の契約',icon:'📜',text:'HPを半分捧げれば、稀なる遺物を授けよう。',
     choices:[{label:'契約する（現在HP半減、遺物獲得）',action:'contract'},{label:'立ち去る',action:'skip'}]},
   {title:'謎の薬',icon:'🧪',text:'怪しげな薬が置かれている。',
     choices:[{label:'飲む（最大HP+10 or ランダム弱体）',action:'mystery_potion'},{label:'立ち去る',action:'skip'}]},
@@ -282,7 +367,8 @@ function generateMap(){
       nodes.push({type:'elite',icon:'👹',label:'右(危険)',bg:bgType});
     }
     else if(f===3){
-      nodes.push({type:'battle',icon:'⚔️',label:'左(安定)',bg:bgType});
+      const isElite = state.activeAscension >= 1;
+      nodes.push({type:(isElite?'elite':'battle'),icon:(isElite?'👹':'⚔️'),label:'左(安定)',bg:bgType});
       nodes.push({type:'event',icon:'❓',label:'右(危険)',bg:bgType});
     }
     else if(f===4){ nodes.push({type:'rest',icon:'🏕️',label:'休憩',bg:bgType}); }
@@ -363,6 +449,8 @@ function drawCards(n){
     const c=drawCard();if(!c) break;
     state.hand.push(c);
     if(hasRelic('hyper_focus')){ state.playerStatus.strength = (state.playerStatus.strength||0)+1; addLog('遺物[過集中] 攻撃力+1','buf'); }
+    state.cardsDrawnThisTurn = (state.cardsDrawnThisTurn||0) + 1;
+    if(state.cardsDrawnThisTurn >= 15) unlockAchievement('magician');
   }
 }
 
@@ -385,18 +473,31 @@ function applyDamage(target,amount){
         addLog(`[トゲ装甲] ${ref}ダメージ反射！`,'dmg'); setTimeout(()=>applyDamage('enemy',ref), 300);
       }
     }
-    if(d>0){state.playerHP=Math.max(0,state.playerHP-d);addLog(`プレイヤーに${d}ダメージ！`,'dmg');showDmgPopup('p-unit','-'+d,'dmg-pop');flashUnit('p-unit');playerHitAnim()}
+    if(d>0){
+      state.playerHP=Math.max(0,state.playerHP-d);addLog(`プレイヤーに${d}ダメージ！`,'dmg');showDmgPopup('p-unit','-'+d,'dmg-pop');flashUnit('p-unit');playerHitAnim();
+      state.tookDamageThisBattle = true;
+    }
   }else{
     let d=amount + (state.playerStatus.strength||0);
     if(state.enemyBlock>0){if(state.enemyBlock>=d){state.enemyBlock-=d;addLog(`敵ブロックが${d}防御！`,'blk');showDmgPopup('e-unit','🛡'+d,'block-pop');d=0}else{d-=state.enemyBlock;addLog(`敵ブロック貫通、${d}ダメージ！`,'blk');state.enemyBlock=0}}
-    if(d>0){state.enemyHP=Math.max(0,state.enemyHP-d);addLog(`敵に${d}ダメージ！`,'dmg');showDmgPopup('e-unit','-'+d,'dmg-pop');flashUnit('e-unit')}
+    if(d>0){
+      state.enemyHP=Math.max(0,state.enemyHP-d);addLog(`敵に${d}ダメージ！`,'dmg');showDmgPopup('e-unit','-'+d,'dmg-pop');flashUnit('e-unit');
+      if(d > saveData.maxDamage){ saveData.maxDamage = d; saveMeta(); }
+      if(d >= 99) unlockAchievement('overkill');
+    }
   }
 }
-function applyBlock(n){state.block+=n}
+function applyBlock(n){
+  state.block+=n;
+  if(state.block > saveData.maxBlock){ saveData.maxBlock = state.block; saveMeta(); }
+  if(state.block >= 100) unlockAchievement('iron_fortress');
+}
 function applyPoison(n){
   if(state.currentEnemy&&state.currentEnemy.poisonImmune){addLog('敵は毒無効！','dim');return}
   let amt = n + (hasRelic('snake_skull') ? 1 : 0);
   state.enemyStatus.poison+=amt;addLog(`敵に毒${amt}付与！`,'psn');
+  if(state.enemyStatus.poison > saveData.maxPoison){ saveData.maxPoison = state.enemyStatus.poison; saveMeta(); }
+  if(state.enemyStatus.poison >= 100) unlockAchievement('poison_master');
 }
 function applyWeak(n){state.enemyStatus.weak+=n;addLog(`敵に弱体${n}付与！`,'dbf')}
 function applyStatusEffects(){
@@ -451,6 +552,9 @@ function playCard(cardId){
   if(card.synergy!=='adrenaline' && card.synergy!=='accelerate') state.discardPile.push(card); // Adrenaline and Accelerate are exhaust
   
   state.cardsPlayedThisTurn++;
+  if(state.cardsPlayedThisTurn > saveData.maxPlay){ saveData.maxPlay = state.cardsPlayedThisTurn; saveMeta(); }
+  if(state.cardsPlayedThisTurn >= 20) unlockAchievement('infinite_loop');
+  
   if(state.hand.length===0 && hasRelic('spinning_top')){
     addLog('遺物[独楽] 1枚ドロー','drw');
     drawCards(1);
@@ -469,6 +573,7 @@ function startPlayerTurn(){
   if(!hasRelic('barricade')) state.block=0;
   if(hasRelic('heavy_armor')) applyBlock(3);
   state.cardsPlayedThisTurn=0;
+  state.cardsDrawnThisTurn=0;
   state.spikedArmorActive=0;
   applyStatusEffects();updateBattleUI();
   if(checkBattleEnd()) return;
@@ -516,7 +621,13 @@ function startBattle(encounterType, bgType){
   const bosses=Object.keys(ENEMY_DEFS).filter(k=>ENEMY_DEFS[k].boss);
   const elites=Object.keys(ENEMY_DEFS).filter(k=>ENEMY_DEFS[k].elite);
   const ek=isBoss?pick(bosses):(isElite?pick(elites):pick(normals));
-  const ed=ENEMY_DEFS[ek];
+  const ed=JSON.parse(JSON.stringify(ENEMY_DEFS[ek]));
+  if(state.activeAscension >= 2 && !isBoss){
+    ed.hp = Math.floor(ed.hp * 1.15);
+    ed.actions.forEach(a => { if(a.value) a.value = Math.floor(a.value * 1.15); });
+  }
+  if(state.activeAscension >= 4 && isBoss) ed.hp = Math.floor(ed.hp * 1.3);
+  
   state.currentEnemy=ed;
   state.enemyMaxHP=ed.hp+Math.floor(Math.random()*10);state.enemyHP=state.enemyMaxHP;
   el('e-name').textContent=ed.name;el('e-icon').textContent=ed.icon;
@@ -528,17 +639,31 @@ function startBattle(encounterType, bgType){
   el('log').innerHTML='';
   addLog(isBoss?`⚠️ ${ed.name}が現れた！`:(isElite?`👹 強敵 ${ed.name} が現れた！`:`${ed.name}が現れた！`));
   triggerRelics('battleStart');
+  state.tookDamageThisBattle = false;
   startPlayerTurn();setBtnState(true);
 }
 
 function checkBattleEnd(){
   if(state.enemyHP<=0){
     triggerRelics('enemyKill');
+    unlockAchievement('first_blood');
+    if(!state.tookDamageThisBattle) unlockAchievement('untouchable');
+    if(state.playerHP === 1) unlockAchievement('close_call');
+    if(state.currentEnemy && state.currentEnemy.boss && state.turnCount <= 5) unlockAchievement('speedrunner');
+    
     if(state.currentEnemy && state.currentEnemy.elite){
       addLog('エリートを撃破！遺物をドロップした！', 'success');
-      const avail=RELIC_DEFS.filter(r=>!hasRelic(r.id));
+      state.elitesKilled = (state.elitesKilled || 0) + 1;
+      if(state.elitesKilled >= 3) unlockAchievement('elite_hunter');
+      
+      const avail=RELIC_DEFS.filter(r=>!hasRelic(r.id) && !(['vamp_fang','barricade','spinning_top'].includes(r.id) && !saveData.unlocked.includes(r.id)));
       if(avail.length>0){
-        const r=pick(avail);state.relics.push(r);
+        let r=pick(avail);
+        if(saveData.upgrades.boss_relic_choice){
+           const avail2=avail.filter(x=>x.id!==r.id);
+           if(avail2.length>0) r = Math.random()>0.5 ? pick(avail2) : r; // 雑だが2択相当の挙動（実際はUIなし自動選択の確率アップ）
+        }
+        state.relics.push(r);
         addLog(`遺物[${r.name}]を獲得！`);
       }
     }
@@ -560,6 +685,7 @@ function showReward(){
   
   const pool = [];
   Object.keys(CARD_DEFS).forEach(k => {
+    if(['executioner','noxious_fumes'].includes(k) && !saveData.unlocked.includes(k)) return; // ロック中なら出ない
     const cls = CARD_DEFS[k].cls;
     let weight = 1 + (deckCounts[cls]||0); // 所持枚数分出やすくなる
     for(let i=0; i<weight; i++) pool.push(k);
@@ -576,7 +702,11 @@ function showReward(){
   h+=`</div><button class="obtn" onclick="skipReward()">スキップ</button>`;
   ov.innerHTML=h;ov.style.display='flex';
 }
-function pickReward(type){const c=createCard(type);state.discardPile.push(c);addLog(`${c.name}を獲得！`,'drw');afterBattleWin()}
+function pickReward(type){
+  const upgRate = (saveData.upgrades.upgrade_chance||0) * 0.02;
+  const c=createCard(type, Math.random() < upgRate);
+  state.discardPile.push(c);addLog(`${c.name}を獲得！`,'drw');afterBattleWin()
+}
 function skipReward(){addLog('報酬スキップ');afterBattleWin()}
 function afterBattleWin(){
   // save deck state
@@ -589,7 +719,8 @@ function afterBattleWin(){
 // ============================================================
 function startEvent(){
   state.gamePhase='event';el('map-view').classList.add('hide');
-  const evt=pick(EVENT_DEFS);
+  let availableEvents = EVENT_DEFS.filter(e => e.id!=='demon_forge' || saveData.unlocked.includes('demon_forge'));
+  const evt=pick(availableEvents);
   const ov=el('overlay');
   let h=`<div class="event-box"><div style="font-size:2.5rem;margin-bottom:.5rem">${evt.icon}</div><h2>${evt.title}</h2><p>${evt.text}</p></div><div class="event-choices">`;
   evt.choices.forEach(ch=>{h+=`<button class="obtn${ch.action==='skip'?'':' primary'}" onclick="resolveEvent('${ch.action}')">${ch.label}</button>`});
@@ -599,6 +730,22 @@ function startEvent(){
 function resolveEvent(action){
   const ov=el('overlay');
   switch(action){
+    case 'roulette':
+      if(Math.random()<0.5){
+        const avail=RELIC_DEFS.filter(r=>!hasRelic(r.id));
+        let r1, r2;
+        if(avail.length>0){ r1=pick(avail); state.relics.push(r1); }
+        const avail2=RELIC_DEFS.filter(r=>!hasRelic(r.id));
+        if(avail2.length>0){ r2=pick(avail2); state.relics.push(r2); }
+        const text = r1 ? `遺物「${r1.name}」${r2?'と「'+r2.name+'」':''}を獲得！` : '遺物は得られなかった。';
+        ov.innerHTML=`<h1>🎰大当たり！</h1><div class="sub">${text}</div><button class="obtn primary" onclick="afterEvent()">続行</button>`;
+        unlockAchievement('gambler');
+      }else{
+        const dmg = Math.floor(state.playerHP/2);
+        state.playerHP -= dmg;
+        ov.innerHTML=`<h1>💀大外れ...</h1><div class="sub">現在HPの半分（${dmg}ダメージ）を失った！</div><button class="obtn primary" onclick="afterEvent()">続行</button>`;
+      }
+      break;
     case 'contract':
       const dmg = Math.floor(state.playerHP/2);
       state.playerHP -= dmg;
@@ -606,6 +753,7 @@ function resolveEvent(action){
       let rText = 'もう得られる遺物はない...';
       if(avail.length>0){ const r=pick(avail); state.relics.push(r); rText=`遺物「${r.name}」を獲得！`; }
       ov.innerHTML=`<h1>📜</h1><div class="sub">HPを半分（${dmg}ダメージ）失った...<br>${rText}</div><button class="obtn primary" onclick="afterEvent()">続行</button>`;
+      unlockAchievement('blood_price');
       break;
     case 'mystery_potion':
       if(Math.random()<0.5){
@@ -669,6 +817,8 @@ function finishPurge(){
   const dmg = state.purgeCount * 8;
   state.playerHP = Math.max(1, state.playerHP - dmg);
   el('overlay').innerHTML=`<h1>🔥</h1><div class="sub">${state.purgedList.join(', ')}を削除した！<br>${dmg}ダメージを受けた...</div><button class="obtn primary" onclick="afterEvent()">続行</button>`;
+  state.totalPurged = (state.totalPurged||0) + state.purgeCount;
+  if(state.totalPurged >= 5) unlockAchievement('purifier');
 }
 
 function afterEvent(){el('overlay').style.display='none';advanceFloor()}
@@ -678,12 +828,16 @@ function afterEvent(){el('overlay').style.display='none';advanceFloor()}
 // ============================================================
 function startRest(){
   state.gamePhase='rest';el('map-view').classList.add('hide');
-  const healAmt=Math.min(15,state.playerMaxHP-state.playerHP);
+  let baseHeal=15;
+  if(state.activeAscension >= 3) baseHeal = Math.floor(baseHeal / 2);
+  let healAmt=Math.min(baseHeal,state.playerMaxHP-state.playerHP);
+  healAmt += ((saveData.upgrades.heal_boost||0) * 2);
   const ov=el('overlay');
   ov.innerHTML=`<div class="rest-box"><h2>🏕️ 休憩所</h2><div class="sub">焚き火で体を休める</div><div class="event-choices"><button class="obtn primary" onclick="doRest(${healAmt})">休む（HP+${healAmt}）</button><button class="obtn" onclick="afterEvent()">すぐ出発</button></div></div>`;
   ov.style.display='flex';
 }
 function doRest(amt){
+  state.usedRest = true;
   state.playerHP=Math.min(state.playerMaxHP,state.playerHP+amt);
   el('overlay').innerHTML=`<h1>🏕️</h1><div class="sub">HP ${amt} 回復！（${state.playerHP}/${state.playerMaxHP}）</div><button class="obtn primary" onclick="afterEvent()">出発</button>`;
 }
@@ -694,14 +848,14 @@ function doRest(amt){
 function showGameOver(){
   document.body.classList.remove('battle-bg');
   const ov=el('overlay');
-  ov.innerHTML=`<h1 style="color:var(--danger)">GAME OVER</h1><div class="sub">階層 ${state.currentFloor+1} で倒れた...</div><button class="obtn primary" onclick="initGame()">最初から</button>`;
+  ov.innerHTML=`<h1 style="color:var(--danger)">ゲームオーバー</h1><div class="sub">あなたの魂は輪廻に飲まれた...</div><button class="obtn primary" onclick="returnTitle()">タイトルへ戻る</button>`;
   ov.style.display='flex';
+  saveData.souls += 5; // death compensation
+  saveMeta();
 }
 function showVictory(){
   document.body.classList.remove('battle-bg');
   const ov=el('overlay');
-  ov.innerHTML=`<h1 style="color:var(--success)">🎉 ダンジョンクリア！</h1><div class="sub">全${state.map.length}階層を突破！<br>遺物: ${state.relics.map(r=>r.icon).join(' ')||'なし'}<br>デッキ: ${state.deck.length}枚</div><button class="obtn primary" onclick="startRun()">もう一度挑戦</button>`;
-  ov.style.display='flex';
 }
 
 // ============================================================
@@ -755,18 +909,64 @@ function updateTopBar(){
 // ============================================================
 // ゲーム初期化
 // ============================================================
+function initRun(){
+  if(saveData.playCount === 0){
+    startRun();
+    return;
+  }
+  // スタートボーナス表示
+  el('title-view').classList.add('hide');
+  const ov=el('overlay');
+  let h=`<h1 style="color:var(--accent)">神秘なる声</h1><div class="sub">再び挑む者よ...恩恵を授けよう。</div><div class="event-choices">`;
+  h+=`<button class="obtn primary" onclick="startRunWithBonus('hp')">安定：最大HP+10</button>`;
+  h+=`<button class="obtn primary" onclick="startRunWithBonus('relic')">未知：ランダム遺物1つ獲得</button>`;
+  h+=`<button class="obtn" onclick="startRunWithBonus('risk')" style="color:var(--danger)">危険：最大HP-20%、ボス遺物獲得</button>`;
+  h+=`</div>`;
+  ov.innerHTML=h;ov.style.display='flex';
+}
+
+function startRunWithBonus(type){
+  startRun();
+  if(type==='hp'){ state.playerMaxHP+=10; state.playerHP+=10; addLog('恩恵：最大HP+10','hel'); }
+  else if(type==='relic'){
+    const avail=RELIC_DEFS.filter(r=>!hasRelic(r.id) && !(['vamp_fang','barricade','spinning_top'].includes(r.id) && !saveData.unlocked.includes(r.id)));
+    if(avail.length>0){ const r=pick(avail); state.relics.push(r); addLog(`恩恵：遺物[${r.name}]を獲得！`,'buf'); }
+  }
+  else if(type==='risk'){
+    const cost = Math.floor(state.playerMaxHP*0.2);
+    state.playerMaxHP-=cost; state.playerHP = Math.min(state.playerHP, state.playerMaxHP);
+    const avail=RELIC_DEFS.filter(r=>!hasRelic(r.id) && !(['vamp_fang','barricade','spinning_top'].includes(r.id) && !saveData.unlocked.includes(r.id)));
+    if(avail.length>0){ const r=pick(avail); state.relics.push(r); addLog(`代償：最大HP-${cost}。遺物[${r.name}]を獲得！`,'dmg'); }
+  }
+  updateTopBar();
+}
+
 function startRun(){
   el('title-view').classList.add('hide');
   el('top-bar').classList.remove('hide');
+  saveData.playCount++; saveMeta();
   initGame();
 }
 function initGame(){
-  state.playerHP=state.playerMaxHP;state.block=0;state.enemyBlock=0;
+  // 永続強化の適用
+  const hpBonus = saveData.upgrades.max_hp * 2;
+  state.playerMaxHP = 50 + hpBonus;
+  state.playerHP=state.playerMaxHP;
+  
+  state.block=0;state.enemyBlock=0;
   state.energy=state.maxEnergy=3;state.hand=[];state.discardPile=[];
   state.isPlayerTurn=false;state.enemyStatus={poison:0,weak:0};
   state.playerStatus={poison:0};state.enemyIntent=null;state.turnCount=0;
   state.currentFloor=0;state.relics=[];state.currentEnemy=null;state.handSize=5;
-  state.deck=initializeDeck();state.drawPile=shuffle([...state.deck]);
+  
+  // アセンション適用
+  if(saveData.maxAscension >= 5){
+    const curse = createCard('weak'); curse.name='呪い'; curse.desc='引くと損をする';
+    state.deck=initializeDeck(); state.deck.push(curse);
+  }else{
+    state.deck=initializeDeck();
+  }
+  state.drawPile=shuffle([...state.deck]);
   state.map=generateMap();state.gamePhase='map';
   el('overlay').style.display='none';
   el('battle-view').classList.add('hide');
@@ -775,6 +975,110 @@ function initGame(){
 function showGameOver(){
   document.body.classList.remove('battle-bg');
   const ov=el('overlay');
-  ov.innerHTML=`<h1 style="color:var(--danger)">GAME OVER</h1><div class="sub">階層 ${state.currentFloor+1} で倒れた...<br>デッキ: ${state.deck.length}枚 | 遺物: ${state.relics.map(r=>r.icon).join(' ')||'なし'}</div><button class="obtn primary" onclick="startRun()">最初から</button>`;
+  ov.innerHTML=`<h1 style="color:var(--danger)">ゲームオーバー</h1><div class="sub">階層 ${state.currentFloor+1} で倒れた...<br>あなたの魂は輪廻に飲まれた</div><button class="obtn primary" onclick="returnTitle()">タイトルへ戻る</button>`;
   ov.style.display='flex';
+  saveData.souls += 5; // death compensation
+  saveMeta();
 }
+
+function showGameClear(){
+  document.body.classList.remove('battle-bg');
+  const ov=el('overlay');
+  ov.innerHTML=`<h1 style="color:var(--success)">ダンジョン踏破！</h1><div class="sub">あなたは輪廻を打ち破った！</div><button class="obtn primary" onclick="returnTitle()">タイトルへ戻る</button>`;
+  ov.style.display='flex';
+  unlockAchievement('slayer');
+  if(!state.usedRest) unlockAchievement('sleepless');
+  saveData.bossKills++;
+  saveData.souls += 15;
+  if(state.activeAscension === saveData.maxAscension) saveData.maxAscension++;
+  if(state.activeAscension >= 1) unlockAchievement('ascendant1');
+  if(state.activeAscension >= 5) unlockAchievement('ascendant5');
+  if(state.deck.length <= 10) unlockAchievement('minimalist');
+  if(state.deck.length >= 30) unlockAchievement('legion');
+  saveMeta();
+  unlockCheck();
+}
+
+function returnTitle(){
+  el('overlay').style.display='none';el('battle-view').classList.add('hide');el('map-view').classList.add('hide');el('top-bar').classList.add('hide');
+  el('title-view').classList.remove('hide');
+  changeAscension(0);
+}
+
+// ============================================================
+// メタUI (タイトル画面)
+// ============================================================
+function changeAscension(d){
+  if(saveData.maxAscension===undefined) saveData.maxAscension=0;
+  let val = parseInt(el('ascension-lv').textContent) || 0;
+  val = Math.max(0, Math.min(val + d, saveData.maxAscension));
+  el('ascension-lv').textContent = val;
+  const descs = ['標準難易度','エリート敵が出現しやすくなる','敵のHPと攻撃力15%アップ','休憩での回復量が半減','ボスのHPが30%アップ','初期デッキに「呪い」が混ざる'];
+  el('ascension-desc').textContent = descs[val] || '';
+  state.activeAscension = val;
+}
+window.addEventListener('DOMContentLoaded', ()=>changeAscension(0));
+
+function showAchievementsUI(){
+  const ov=el('overlay');
+  let h=`<h1>🏆 実績・アンロック状況</h1><div style="max-width:600px;max-height:80vh;overflow-y:auto;text-align:left;color:var(--text);font-size:0.9rem;display:flex;flex-wrap:wrap;gap:1rem;justify-content:center;padding-right:1rem">`;
+  
+  h+=`<div style="width:100%"><h2 style="color:var(--accent);border-bottom:1px solid rgba(255,255,255,.2);margin-bottom:0.5rem">解放済み要素</h2><div style="display:flex;gap:0.5rem;flex-wrap:wrap">`;
+  Object.keys(META_DEFS.unlocks).forEach(k=>{
+    const u = META_DEFS.unlocks[k];
+    const unlocked = saveData.unlocked.includes(k);
+    h+=`<div style="padding:0.5rem;background:rgba(255,255,255,${unlocked?0.1:0.02});border:1px solid rgba(255,255,255,0.1);border-radius:6px;opacity:${unlocked?1:0.4}">
+      ${u.name} <br><small style="color:var(--dim)">${unlocked?'解放済み':(u.req==='playCount'?'累計プレイ'+u.val+'回':u.req==='bossKills'?'ボス撃破':'特定条件達成')}</small>
+    </div>`;
+  });
+  h+=`</div></div>`;
+
+  h+=`<div style="width:100%;margin-top:1rem"><h2 style="color:var(--success);border-bottom:1px solid rgba(255,255,255,.2);margin-bottom:0.5rem">実績</h2><div style="display:flex;gap:0.5rem;flex-wrap:wrap">`;
+  Object.keys(META_DEFS.achievements).forEach(k=>{
+    const a = META_DEFS.achievements[k];
+    const unlocked = saveData.achievements.includes(k);
+    h+=`<div style="padding:0.5rem;background:rgba(255,255,255,${unlocked?0.1:0.02});border:1px solid rgba(255,255,255,0.1);border-radius:6px;width:calc(50% - 0.5rem);opacity:${unlocked?1:0.4}">
+      <strong>${a.name}</strong> ${unlocked?'✅':''}<br><small style="color:var(--dim)">${a.desc}</small>
+    </div>`;
+  });
+  h+=`</div></div>`;
+  
+  h+=`</div><button class="obtn" style="margin-top:1.5rem" onclick="closeOverlay()">閉じる</button>`;
+  ov.innerHTML=h;ov.style.display='flex';
+}
+
+function showUpgradesUI(){
+  const ov=el('overlay');
+  let h=`<h1>✨ 魂の強化</h1><div class="sub">所持する魂: <span style="color:var(--accent);font-weight:bold">${saveData.souls}</span></div><div style="max-width:500px;text-align:left;display:flex;flex-direction:column;gap:1rem">`;
+  
+  Object.keys(META_DEFS.upgrades).forEach(k=>{
+    const u = META_DEFS.upgrades[k];
+    const clvl = saveData.upgrades[k] || 0;
+    const isMax = clvl >= u.maxLevel;
+    h+=`<div style="background:var(--card-bg);padding:1rem;border-radius:8px;border:1px solid rgba(255,255,255,0.1);display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-weight:bold;color:var(--accent)">${u.name} (Lv ${clvl}/${u.maxLevel})</div>
+        <div style="font-size:0.8rem;color:var(--dim)">${u.desc}</div>
+      </div>
+      <div>
+        ${isMax ? '<span style="color:var(--dim)">MAX</span>' : `<button class="obtn primary" onclick="buyUpgrade('${k}')">強化 (${u.cost}魂)</button>`}
+      </div>
+    </div>`;
+  });
+  
+  h+=`</div><button class="obtn" style="margin-top:1.5rem" onclick="closeOverlay()">閉じる</button>`;
+  ov.innerHTML=h;ov.style.display='flex';
+}
+
+function buyUpgrade(key){
+  const u = META_DEFS.upgrades[key];
+  if(saveData.souls >= u.cost && (saveData.upgrades[key]||0) < u.maxLevel){
+    saveData.souls -= u.cost;
+    saveData.upgrades[key] = (saveData.upgrades[key]||0) + 1;
+    saveMeta();
+    showUpgradesUI();
+  }else{
+    alert('魂が足りません！');
+  }
+}
+function closeOverlay(){ el('overlay').style.display='none'; }

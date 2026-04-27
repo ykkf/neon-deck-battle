@@ -206,7 +206,17 @@ body.battle-bg::after{opacity:.35}
 <div class="char-stand" style="margin-bottom:.5rem"></div>
 <div style="font-size:3rem;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent">🎴 輪廻の札 -Rinne no Fuda-</div>
 <div style="color:var(--dim);font-size:1rem">ローグライク・デッキ構築カードバトル</div>
-<button class="obtn primary" style="font-size:1.1rem;padding:.8rem 2.5rem" onclick="startRun()">冒険を始める</button>
+<div style="display:flex;gap:1rem;margin-top:1rem;flex-wrap:wrap;justify-content:center">
+  <button class="obtn primary" style="font-size:1.1rem;padding:.8rem 2.5rem" onclick="initRun()">冒険を始める</button>
+</div>
+<div style="display:flex;gap:1rem;margin-top:0.5rem;flex-wrap:wrap;justify-content:center">
+  <button class="obtn" onclick="showAchievementsUI()">🏆 実績・解放</button>
+  <button class="obtn" onclick="showUpgradesUI()">✨ 永続強化</button>
+</div>
+<div id="ascension-selector" style="margin-top:0.5rem;font-size:0.9rem;color:var(--dim)">
+  挑戦レベル: <button class="obtn" style="padding:0.2rem 0.5rem;font-size:0.8rem" onclick="changeAscension(-1)">◀</button> <span id="ascension-lv" style="font-weight:bold;color:var(--danger)">0</span> <button class="obtn" style="padding:0.2rem 0.5rem;font-size:0.8rem" onclick="changeAscension(1)">▶</button>
+  <div id="ascension-desc" style="font-size:0.75rem;margin-top:0.3rem"></div>
+</div>
 </div>
 <div class="top-bar hide" id="top-bar"><span class="floor" id="tb-floor">階層: 1</span><span class="hp-top" id="tb-hp">HP: 50/50</span><span class="relics-top" id="tb-relics">遺物: なし</span></div>
 <div id="map-view" class="hide"></div>
