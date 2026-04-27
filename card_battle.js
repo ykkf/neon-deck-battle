@@ -238,6 +238,7 @@ function generateMap(){
 // ============================================================
 function showMap(){
   state.gamePhase='map';
+  document.body.classList.remove('battle-bg');
   el('battle-view').classList.add('hide');
   const mv=el('map-view');mv.classList.remove('hide');
   mv.innerHTML='<div class="map-title">🗺️ ダンジョンマップ</div>';
@@ -390,6 +391,7 @@ function enemyTurn(){
 // ============================================================
 function startBattle(isBoss){
   state.gamePhase='battle';
+  document.body.classList.add('battle-bg');
   el('map-view').classList.add('hide');el('battle-view').classList.remove('hide');
   // 敵選択
   const normals=Object.keys(ENEMY_DEFS).filter(k=>!ENEMY_DEFS[k].boss);
@@ -533,11 +535,13 @@ function doRest(amt){
 // ゲームオーバー / クリア
 // ============================================================
 function showGameOver(){
+  document.body.classList.remove('battle-bg');
   const ov=el('overlay');
   ov.innerHTML=`<h1 style="color:var(--danger)">GAME OVER</h1><div class="sub">階層 ${state.currentFloor+1} で倒れた...</div><button class="obtn primary" onclick="initGame()">最初から</button>`;
   ov.style.display='flex';
 }
 function showVictory(){
+  document.body.classList.remove('battle-bg');
   const ov=el('overlay');
   ov.innerHTML=`<h1 style="color:var(--success)">🎉 ダンジョンクリア！</h1><div class="sub">全${state.map.length}階層を突破！<br>遺物: ${state.relics.map(r=>r.icon).join(' ')||'なし'}<br>デッキ: ${state.deck.length}枚</div><button class="obtn primary" onclick="startRun()">もう一度挑戦</button>`;
   ov.style.display='flex';
@@ -612,6 +616,7 @@ function initGame(){
   showMap();
 }
 function showGameOver(){
+  document.body.classList.remove('battle-bg');
   const ov=el('overlay');
   ov.innerHTML=`<h1 style="color:var(--danger)">GAME OVER</h1><div class="sub">階層 ${state.currentFloor+1} で倒れた...<br>デッキ: ${state.deck.length}枚 | 遺物: ${state.relics.map(r=>r.icon).join(' ')||'なし'}</div><button class="obtn primary" onclick="startRun()">最初から</button>`;
   ov.style.display='flex';
