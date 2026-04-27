@@ -17,6 +17,14 @@ body.battle-bg::after{opacity:.35}
 @keyframes s-shake{0%,100%{transform:translateX(0) translateY(0)}15%{transform:translateX(-12px) translateY(-8px) scale(0.99)}30%{transform:translateX(10px) translateY(6px)}50%{transform:translateX(-8px) translateY(-4px)}70%{transform:translateX(5px) translateY(3px)}}
 .hide{display:none!important}
 
+/* Screen Flashes */
+.screen-flash{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:999;opacity:0}
+.flash-red{background:rgba(255,0,0,0.3);animation:flash-fade 0.3s ease-out}
+.flash-blue{background:rgba(56,189,248,0.2);animation:flash-fade 0.3s ease-out}
+.flash-white{background:rgba(255,255,255,0.4);animation:flash-fade 0.4s ease-out}
+@keyframes flash-fade{0%{opacity:1}100%{opacity:0}}
+
+
 /* Top bar */
 .top-bar{display:flex;justify-content:space-between;align-items:center;padding:.6rem 1rem;background:rgba(0,0,0,.4);border-radius:10px;margin-bottom:.8rem;font-size:.85rem;border:1px solid rgba(255,255,255,.06);backdrop-filter:blur(8px)}
 .top-bar .floor{color:var(--accent);font-weight:700}.top-bar .hp-top{color:var(--danger);font-weight:700}
@@ -135,7 +143,7 @@ body.battle-bg::after{opacity:.35}
 .card.attack{border-top:3px solid var(--danger)}.card.block{border-top:3px solid var(--defense)}.card.heal{border-top:3px solid var(--success)}.card.poison{border-top:3px solid var(--poison)}.card.debuff{border-top:3px solid var(--debuff)}.card.draw{border-top:3px solid var(--draw)}
 .card.upgraded{box-shadow:0 0 12px rgba(251,191,36,.4);border-color:var(--defense)!important}
 .card.upgraded .c-name{color:var(--defense)}
-.card.played{animation:card-play .3s ease-out forwards!important}
+.card.played{animation:card-play .2s ease-out forwards!important}
 @keyframes card-play{to{opacity:0;transform:translateY(-60px) scale(.5) rotateX(30deg)}}
 .c-cost{position:absolute;top:6px;left:6px;background:var(--accent);color:#000;font-weight:700;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.72rem;box-shadow:0 2px 8px rgba(56,189,248,.3)}
 .c-name{font-weight:700;font-size:.85rem;text-align:center}.c-icon{font-size:1.3rem;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3))}.c-val{font-size:1.15rem;font-weight:700;color:var(--accent)}.c-desc{font-size:.6rem;color:var(--dim);text-align:center}
@@ -148,15 +156,21 @@ body.battle-bg::after{opacity:.35}
 #end-turn-btn:disabled{opacity:.25;cursor:not-allowed;transform:none;box-shadow:none}
 
 /* Damage popup */
-.dmg-popup{position:absolute;font-weight:700;font-size:1.4rem;pointer-events:none;z-index:50;animation:dmg-float .8s cubic-bezier(.34,1.56,.64,1) forwards;text-shadow:0 2px 8px rgba(0,0,0,.5)}
-@keyframes dmg-float{0%{opacity:1;transform:translateY(0) scale(1)}60%{opacity:1;transform:translateY(-40px) scale(1.2)}100%{opacity:0;transform:translateY(-60px) scale(.8)}}
+.dmg-popup{position:absolute;font-weight:800;font-size:1.6rem;pointer-events:none;z-index:50;animation:dmg-bounce 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;text-shadow:0 2px 8px rgba(0,0,0,.8);-webkit-text-stroke: 1px rgba(0,0,0,0.5)}
+@keyframes dmg-bounce{0%{opacity:1;transform:scale(0.5) translateY(0)}30%{transform:scale(1.3) translateY(-30px)}80%{opacity:1;transform:scale(1) translateY(-10px)}100%{opacity:0;transform:translateY(-20px)}}
 .dmg-popup.heal-pop{color:var(--success)}
 .dmg-popup.block-pop{color:var(--defense)}
 .dmg-popup.dmg-pop{color:var(--danger)}
 .dmg-popup.poison-pop{color:var(--poison)}
+.dmg-popup.crit-pop{color:#ff1744;font-size:2.4rem;animation:crit-bounce 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;text-shadow:0 0 15px #ff1744, 0 3px 10px rgba(0,0,0,1)}
+@keyframes crit-bounce{0%{opacity:1;transform:scale(0.3) rotate(-10deg)}30%{transform:scale(1.5) rotate(5deg) translateY(-40px)}80%{opacity:1;transform:scale(1.2) rotate(0) translateY(-15px)}100%{opacity:0;transform:translateY(-30px)}}
 
-/* Overlay */
-#overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,.92);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(12px);padding:2rem;overflow-y:auto;animation:overlay-in .3s}
+/* Overlay Transitions */
+#overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,.92);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(12px);padding:2rem;overflow-y:auto;transition:background 0.5s}
+#overlay.fade-in{animation:overlay-in 0.3s}
+#overlay.victory-bg{background:rgba(255,255,255,0.9);color:#000}
+#overlay.victory-bg h1{color:var(--accent);text-shadow:0 0 20px rgba(56,189,248,0.5)}
+#overlay.defeat-bg{background:rgba(0,0,0,0.95);color:var(--danger)}
 @keyframes overlay-in{from{opacity:0}to{opacity:1}}
 #overlay h1{font-size:2.8rem;margin-bottom:.8rem;animation:title-in .5s cubic-bezier(.34,1.56,.64,1)}
 @keyframes title-in{from{opacity:0;transform:scale(.7) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}
@@ -251,7 +265,14 @@ body.battle-bg::after{opacity:.35}
 </div>
 </div>
 <div id="overlay"></div>
+<div id="relic-tooltip" class="hide"></div>
 <div id="game-tooltip" class="hide"></div>
+
+<!-- Flash overlays -->
+<div id="screen-flash-red" class="screen-flash"></div>
+<div id="screen-flash-blue" class="screen-flash"></div>
+<div id="screen-flash-white" class="screen-flash"></div>
+
 <script src="card_battle.js"></script>
 </body>
 </html>

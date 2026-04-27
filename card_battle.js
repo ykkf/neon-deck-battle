@@ -213,10 +213,22 @@ function removeWhiteBg(src,targetSelector){
 }
 
 // ============================================================
-// SE（効果音）管理
+// BGM・SE（効果音）管理
 // ============================================================
+const BGM={
+  current:null,
+  play:function(type){
+    // BGMのモック（実際はnew Audio()で再生・フェード切り替えを行う）
+    if(this.current!==type){
+      console.log(`[BGM] ${this.current} -> ${type}`);
+      this.current=type;
+    }
+  },
+  stop:function(){this.current=null;}
+};
+
 const SE={
-  vols:{card:0.5, hit:0.5, damage:0.5, click:0.3, turn:0.4},
+  vols:{card:0.5, hit:0.5, damage:0.5, click:0.3, turn:0.4, critical:0.6, victory:0.5, defeat:0.5, relic:0.4},
   play:function(name, delay=0){
     setTimeout(()=>{
       const a=new Audio(`se/${name}.mp3`);
@@ -238,15 +250,24 @@ window.addEventListener('load',()=>{
 // ============================================================
 // 演出システム
 // ============================================================
-function showDmgPopup(unitId,text,cls){
+function showDmgPopup(unitId,text,cls,isCrit=false){
   const unit=document.getElementById(unitId);if(!unit) return;
   const pop=document.createElement('div');
-  pop.className='dmg-popup '+cls;
+  pop.className='dmg-popup '+cls+(isCrit?' crit-pop':'');
   pop.textContent=text;
   pop.style.left=Math.random()*40+30+'%';
   pop.style.top='10px';
   unit.appendChild(pop);
   setTimeout(()=>pop.remove(),850);
+}
+
+function flashScreen(color){
+  const el = document.getElementById('screen-flash-'+color);
+  if(el){
+    el.classList.remove('flash-'+color);
+    void el.offsetWidth;
+    el.classList.add('flash-'+color);
+  }
 }
 function flashUnit(unitId){
   const u=document.getElementById(unitId);
@@ -269,8 +290,9 @@ function playerAttackAnim(){
     triggerHitStop();
     triggerScreenShake();
     SE.play('hit');
-  }, 220);
-  setTimeout(()=>{c.classList.remove('char-attack')},550);
+    flashScreen('white');
+  }, 150);
+  setTimeout(()=>{c.classList.remove('char-attack')},300);
 }
 function playerHitAnim(){
   const c=el('p-char');if(!c) return;
@@ -284,7 +306,8 @@ function playerHitAnim(){
   setBtnState(false);
   setTimeout(()=>{if(state.isPlayerTurn)setBtnState(true)},150);
   showSparkFX('p-unit');
-  setTimeout(()=>{c.classList.remove('char-hit')},550);
+  flashScreen('red');
+  setTimeout(()=>{c.classList.remove('char-hit')},300);
 }
 
 // ヒットストップ ＆ スクリーンシェイク
@@ -340,6 +363,7 @@ function triggerRelics(hook){
   state.relics.forEach(r=>{
     if(r.hook!==hook) return;
     glowIcon('relic-icon-' + r.id);
+    SE.play('relic');
     switch(r.id){
       case 'iron_shield': state.block+=5;addLog('遺物[鉄の盾] ブロック+5','blk');break;
       case 'sage_tome': const c=drawCard();if(c){state.hand.push(c);addLog('遺物[賢者の書] +1ドロー','drw')}break;
@@ -619,7 +643,19 @@ function applyDamage(target,amount){
     let d=amount + (state.playerStatus.strength||0);
     if(state.enemyBlock>0){if(state.enemyBlock>=d){state.enemyBlock-=d;addLog(`敵ブロックが${d}防御！`,'blk');showDmgPopup('e-unit','🛡'+d,'block-pop');d=0}else{d-=state.enemyBlock;addLog(`敵ブロック貫通、${d}ダメージ！`,'blk');state.enemyBlock=0}}
     if(d>0){
-      state.enemyHP=Math.max(0,state.enemyHP-d);addLog(`敵に${d}ダメージ！`,'dmg');showDmgPopup('e-unit','-'+d,'dmg-pop');flashUnit('e-unit');
+      // クリティカル判定 (15%)
+      const isCrit = Math.random() < 0.15;
+      if(isCrit){
+        d = Math.floor(d * 1.5);
+        SE.play('critical');
+        flashScreen('white');
+        addLog(`クリティカル！敵に${d}ダメージ！`,'dmg');
+      } else {
+        addLog(`敵に${d}ダメージ！`,'dmg');
+      }
+      state.enemyHP=Math.max(0,state.enemyHP-d);
+      showDmgPopup('e-unit','-'+d,'dmg-pop',isCrit);
+      flashUnit('e-unit');
       if(d > saveData.maxDamage){ saveData.maxDamage = d; saveMeta(); }
       if(d >= 99) unlockAchievement('overkill');
     }
@@ -627,6 +663,7 @@ function applyDamage(target,amount){
 }
 function applyBlock(n){
   state.block+=n;
+  flashScreen('blue');
   if(state.block > saveData.maxBlock){ saveData.maxBlock = state.block; saveMeta(); }
   if(state.block >= 100) unlockAchievement('iron_fortress');
 }
@@ -727,7 +764,7 @@ function endTurn(){
   if(!state.isPlayerTurn) return;
   state.isPlayerTurn=false;setBtnState(false);
   while(state.hand.length>0) state.discardPile.push(state.hand.pop());
-  updateBattleUI();setTimeout(enemyTurn,600);
+  updateBattleUI();setTimeout(enemyTurn,250);
 }
 
 function enemyTurn(){
@@ -755,6 +792,11 @@ function startBattle(encounterType, bgType){
   document.body.style.setProperty('--battle-bg', `url('images/bg_${bgType||'forest'}.png')`);
   document.body.classList.add('battle-bg');
   el('map-view').classList.add('hide');el('battle-view').classList.remove('hide');
+  
+  if(isBoss) BGM.play('boss');
+  else if(isElite) BGM.play('elite');
+  else BGM.play('battle');
+
   // 敵選択
   const normals=Object.keys(ENEMY_DEFS).filter(k=>!ENEMY_DEFS[k].boss && !ENEMY_DEFS[k].elite);
   const bosses=Object.keys(ENEMY_DEFS).filter(k=>ENEMY_DEFS[k].boss);
@@ -806,7 +848,8 @@ function checkBattleEnd(){
         addLog(`遺物[${r.name}]を獲得！`);
       }
     }
-    setTimeout(showReward,500);return true;
+    BGM.stop();
+    setTimeout(showReward,200);return true;
   }
   if(state.playerHP<=0){showGameOver();return true}
   return false;
@@ -960,7 +1003,7 @@ function finishPurge(){
   if(state.totalPurged >= 5) unlockAchievement('purifier');
 }
 
-function afterEvent(){el('overlay').style.display='none';advanceFloor()}
+function afterEvent(){el('overlay').style.display='none';el('overlay').className='';advanceFloor()}
 
 // ============================================================
 // 休憩
@@ -1014,15 +1057,24 @@ function doRest(amt){
 // ============================================================
 function showGameOver(){
   document.body.classList.remove('battle-bg');
+  BGM.stop(); SE.play('defeat');
   const ov=el('overlay');
-  ov.innerHTML=`<h1 style="color:var(--danger)">ゲームオーバー</h1><div class="sub">あなたの魂は輪廻に飲まれた...</div><button class="obtn primary" onclick="returnTitle()">タイトルへ戻る</button>`;
+  ov.className = 'defeat-bg fade-in';
+  ov.innerHTML=`<h1>Defeat...</h1><div class="sub">あなたの魂は輪廻に飲まれた...</div><button class="obtn primary" onclick="returnTitle()">タイトルへ戻る</button>`;
   ov.style.display='flex';
   saveData.souls += 5; // death compensation
   saveMeta();
 }
-function showVictory(){
+function showGameClear(){
   document.body.classList.remove('battle-bg');
+  BGM.stop(); SE.play('victory');
   const ov=el('overlay');
+  ov.className = 'victory-bg fade-in';
+  ov.innerHTML=`<h1>Victory!</h1><div class="sub" style="color:#000">ダンジョンを踏破した！<br>獲得した魂を使い、次なる戦いに備えよう。</div><button class="obtn primary" onclick="returnTitle()">タイトルへ戻る</button>`;
+  ov.style.display='flex';
+  saveData.souls += 20; // clear reward
+  saveMeta();
+  unlockCheck();
 }
 
 // ============================================================
@@ -1311,4 +1363,4 @@ function buyUpgrade(key){
     alert('魂が足りません！');
   }
 }
-function closeOverlay(){ el('overlay').style.display='none'; }
+function closeOverlay(){ el('overlay').style.display='none'; el('overlay').className=''; }
